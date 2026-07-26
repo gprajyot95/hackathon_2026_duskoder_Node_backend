@@ -11,7 +11,7 @@
     "prisma:db-pull": "prisma db pull",
     "prisma:push": "prisma db push",
     "test": "jest --detectOpenHandles --forceExit",
-    "deploy": "wrangler deploy"
+    "deploy": "wrangler pages deploy dist --project-name node-backend"
   },
   "dependencies": {
     "@google/genai": "^0.7.0",
