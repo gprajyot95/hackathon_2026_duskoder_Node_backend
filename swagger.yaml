@@ -1,0 +1,122 @@
+openapi: 3.0.0
+info:
+  title: AI Database Assistant API
+  version: 1.0.0
+  description: Production-grade Node.js TypeScript API for PostgreSQL Stored Function Caching and Two-Stage Gemini AI Query Assistant.
+paths:
+  /api/health:
+    get:
+      summary: Health check and diagnostic telemetry
+      responses:
+        '200':
+          description: Service health information
+  /api/cache/data:
+    get:
+      summary: Get cached database schema metadata JSON
+      responses:
+        '200':
+          description: Schema JSON
+        '404':
+          description: Cache miss
+    delete:
+      summary: Evict database schema metadata from cache
+      responses:
+        '200':
+          description: Eviction success
+  /api/schema/metadata:
+    get:
+      summary: Alias for getting cached database schema metadata JSON
+      responses:
+        '200':
+          description: Schema JSON
+  /api/cache/refresh:
+    post:
+      summary: Triggers PostgreSQL stored function and refreshes schema metadata cache
+      responses:
+        '200':
+          description: Refresh success
+  /api/ai/query:
+    post:
+      summary: AI-Powered Natural Language Database Assistant Query Endpoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question:
+                  type: string
+                  example: "How many users registered this month?"
+      responses:
+        '200':
+          description: Query response
+        '400':
+          description: Error response
+  /api/auth/google:
+    post:
+      summary: Authenticates or registers a Google user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Authenticated user & token
+  /api/admin/users:
+    get:
+      summary: Get list of all registered app users
+      responses:
+        '200':
+          description: Array of users
+  /api/chat/sessions:
+    get:
+      summary: Fetch chat session list for user
+      parameters:
+        - in: query
+          name: userId
+          schema:
+            type: string
+            default: user-1
+      responses:
+        '200':
+          description: Array of sessions
+    post:
+      summary: Create new chat session
+      responses:
+        '200':
+          description: Created session
+  /api/chat/sessions/{sessionId}:
+    get:
+      summary: Fetch session details and message history
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session details
+        '404':
+          description: Not found
+    delete:
+      summary: Delete chat session and messages
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session deleted
+  /api/chat/message:
+    post:
+      summary: Save chat message under session
+      responses:
+        '200':
+          description: Message saved

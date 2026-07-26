@@ -1,0 +1,13 @@
+import { Router } from 'express';
+import { chatHistoryController } from '../controllers/chat-history.controller';
+
+const router = Router();
+
+router.get('/sessions', (req, res, next) => chatHistoryController.getChatSessions(req, res, next));
+router.get('/sessions/:sessionId', (req, res, next) => chatHistoryController.getChatSessionDetails(req, res, next));
+router.post('/sessions', (req, res, next) => chatHistoryController.createChatSession(req, res, next));
+router.delete('/sessions/:sessionId', (req, res, next) => chatHistoryController.deleteChatSession(req, res, next));
+router.get('/history/:userId', (req, res, next) => chatHistoryController.getChatHistory(req, res, next));
+router.post('/message', (req, res, next) => chatHistoryController.saveChatMessage(req, res, next));
+
+export default router;

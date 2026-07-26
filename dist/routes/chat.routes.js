@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const chat_history_controller_1 = require("../controllers/chat-history.controller");
+const router = (0, express_1.Router)();
+router.get('/sessions', (req, res, next) => chat_history_controller_1.chatHistoryController.getChatSessions(req, res, next));
+router.get('/sessions/:sessionId', (req, res, next) => chat_history_controller_1.chatHistoryController.getChatSessionDetails(req, res, next));
+router.post('/sessions', (req, res, next) => chat_history_controller_1.chatHistoryController.createChatSession(req, res, next));
+router.delete('/sessions/:sessionId', (req, res, next) => chat_history_controller_1.chatHistoryController.deleteChatSession(req, res, next));
+router.get('/history/:userId', (req, res, next) => chat_history_controller_1.chatHistoryController.getChatHistory(req, res, next));
+router.post('/message', (req, res, next) => chat_history_controller_1.chatHistoryController.saveChatMessage(req, res, next));
+exports.default = router;

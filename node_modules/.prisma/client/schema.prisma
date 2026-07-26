@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AppUser {
+  id                Int       @id @default(autoincrement())
+  googleId          String    @unique @map("google_id") @db.VarChar(255)
+  email             String    @db.VarChar(255)
+  firstName         String?   @map("first_name") @db.VarChar(255)
+  lastName          String?   @map("last_name") @db.VarChar(255)
+  profilePictureUrl String?   @map("profile_picture_url") @db.Text
+  role              String?   @default("USER") @db.VarChar(50)
+  accountStatus     String?   @default("ACTIVE") @map("account_status") @db.VarChar(50)
+  lastLoginAt       DateTime? @default(now()) @map("last_login_at") @db.Timestamp(6)
+  createdAt         DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt         DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  @@map("app_user")
+}
+
+model ChatSession {
+  sessionId     String        @id @map("session_id") @db.VarChar(255)
+  userId        String        @map("user_id") @db.VarChar(255)
+  title         String        @default("New Chat") @db.VarChar(255)
+  createdAt     DateTime?     @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt     DateTime?     @default(now()) @map("updated_at") @db.Timestamp(6)
+  lastMessageAt DateTime?     @default(now()) @map("last_message_at") @db.Timestamp(6)
+  messages      ChatMessage[]
+
+  @@map("chat_session")
+}
+
+model ChatMessage {
+  id          String       @id @db.VarChar(255)
+  sessionId   String?      @map("session_id") @db.VarChar(255)
+  userId      String       @map("user_id") @db.VarChar(255)
+  sender      String       @db.VarChar(50)
+  messageType String?      @default("text") @map("message_type") @db.VarChar(50)
+  messageText String?      @map("message_text") @db.Text
+  title       String?      @db.VarChar(255)
+  summary     String?      @db.Text
+  sqlQuery    String?      @map("sql_query") @db.Text
+  createdAt   DateTime?    @default(now()) @map("created_at") @db.Timestamp(6)
+  session     ChatSession? @relation(fields: [sessionId], references: [sessionId], onDelete: Cascade)
+
+  @@map("chat_message")
+}

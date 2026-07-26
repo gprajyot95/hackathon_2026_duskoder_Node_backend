@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_controller_1 = require("../controllers/auth.controller");
+const validate_middleware_1 = require("../middlewares/validate.middleware");
+const auth_validator_1 = require("../validators/auth.validator");
+const router = (0, express_1.Router)();
+router.post('/auth/google', (req, res, next) => auth_controller_1.authController.authenticateGoogleUser(req, res, next));
+router.get('/admin/users', (req, res, next) => auth_controller_1.authController.getAllUsers(req, res, next));
+router.put('/admin/users/:userId/role', (0, validate_middleware_1.validate)(auth_validator_1.updateRoleSchema), (req, res, next) => auth_controller_1.authController.updateUserRole(req, res, next));
+router.put('/admin/users/:userId/status', (0, validate_middleware_1.validate)(auth_validator_1.updateStatusSchema), (req, res, next) => auth_controller_1.authController.updateUserStatus(req, res, next));
+exports.default = router;
