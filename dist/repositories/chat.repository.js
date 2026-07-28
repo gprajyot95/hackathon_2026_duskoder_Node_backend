@@ -1,7 +1,10 @@
-import { prisma } from '../config/database.config';
-export class ChatRepository {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.chatRepository = exports.ChatRepository = void 0;
+const database_config_1 = require("../config/database.config");
+class ChatRepository {
     async findSessionsByUserId(userId) {
-        return prisma.chatSession.findMany({
+        return database_config_1.prisma.chatSession.findMany({
             where: { userId },
             select: {
                 sessionId: true,
@@ -14,7 +17,7 @@ export class ChatRepository {
         });
     }
     async findSessionById(sessionId) {
-        return prisma.chatSession.findUnique({
+        return database_config_1.prisma.chatSession.findUnique({
             where: { sessionId },
             include: {
                 messages: {
@@ -24,7 +27,7 @@ export class ChatRepository {
         });
     }
     async createSession(sessionId, userId, title) {
-        return prisma.chatSession.create({
+        return database_config_1.prisma.chatSession.create({
             data: {
                 sessionId,
                 userId,
@@ -36,17 +39,17 @@ export class ChatRepository {
         });
     }
     async deleteSession(sessionId) {
-        await prisma.chatMessage.deleteMany({ where: { sessionId } });
-        await prisma.chatSession.delete({ where: { sessionId } });
+        await database_config_1.prisma.chatMessage.deleteMany({ where: { sessionId } });
+        await database_config_1.prisma.chatSession.delete({ where: { sessionId } });
     }
     async findMessagesByUserId(userId) {
-        return prisma.chatMessage.findMany({
+        return database_config_1.prisma.chatMessage.findMany({
             where: { userId },
             orderBy: { createdAt: 'asc' },
         });
     }
     async upsertSession(sessionId, userId, title = 'New Chat') {
-        return prisma.chatSession.upsert({
+        return database_config_1.prisma.chatSession.upsert({
             where: { sessionId },
             update: { updatedAt: new Date(), lastMessageAt: new Date() },
             create: {
@@ -60,7 +63,7 @@ export class ChatRepository {
         });
     }
     async saveMessage(data) {
-        return prisma.chatMessage.create({
+        return database_config_1.prisma.chatMessage.create({
             data: {
                 id: data.id,
                 sessionId: data.sessionId,
@@ -76,10 +79,11 @@ export class ChatRepository {
         });
     }
     async updateSessionTitle(sessionId, title) {
-        await prisma.chatSession.update({
+        await database_config_1.prisma.chatSession.update({
             where: { sessionId },
             data: { title, updatedAt: new Date() },
         });
     }
 }
-export const chatRepository = new ChatRepository();
+exports.ChatRepository = ChatRepository;
+exports.chatRepository = new ChatRepository();

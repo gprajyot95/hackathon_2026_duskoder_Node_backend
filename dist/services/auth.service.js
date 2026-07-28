@@ -1,9 +1,12 @@
-import { randomUUID } from 'crypto';
-import { userRepository } from '../repositories/user.repository';
-import { logger } from '../config/logger.config';
-export class AuthService {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.authService = exports.AuthService = void 0;
+const crypto_1 = require("crypto");
+const user_repository_1 = require("../repositories/user.repository");
+const logger_config_1 = require("../config/logger.config");
+class AuthService {
     async authenticateGoogleUser(payload) {
-        logger.info('Received Google Auth Login Request');
+        logger_config_1.logger.info('Received Google Auth Login Request');
         let profile = payload;
         if (payload.profile && typeof payload.profile === 'object') {
             profile = payload.profile;
@@ -14,7 +17,7 @@ export class AuthService {
         const picture = profile.picture || profile.profilePictureUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80';
         const roleRequested = profile.role || (email.includes('admin') ? 'ADMIN' : 'USER');
         try {
-            const user = await userRepository.upsertGoogleUser({
+            const user = await user_repository_1.userRepository.upsertGoogleUser({
                 googleId,
                 email,
                 firstName: name,
@@ -32,11 +35,11 @@ export class AuthService {
                     status: user.accountStatus,
                     lastLoginAt: user.lastLoginAt,
                 },
-                token: `jwt-session-token-${randomUUID()}`,
+                token: `jwt-session-token-${(0, crypto_1.randomUUID)()}`,
             };
         }
         catch (e) {
-            logger.error(`Error authenticating Google user in database: ${e.message}`);
+            logger_config_1.logger.error(`Error authenticating Google user in database: ${e.message}`);
             return {
                 user: {
                     id: 1,
@@ -53,7 +56,7 @@ export class AuthService {
     }
     async getAllUsers() {
         try {
-            const users = await userRepository.findAllUsers();
+            const users = await user_repository_1.userRepository.findAllUsers();
             return users.map(u => ({
                 id: u.id,
                 googleId: u.googleId,
@@ -66,27 +69,28 @@ export class AuthService {
             }));
         }
         catch (e) {
-            logger.warn(`Could not query app_user table: ${e.message}`);
+            logger_config_1.logger.warn(`Could not query app_user table: ${e.message}`);
             return [];
         }
     }
     async updateUserRole(userId, role) {
         try {
-            await userRepository.updateRole(userId, role);
+            await user_repository_1.userRepository.updateRole(userId, role);
         }
         catch (e) {
-            logger.warn(`Could not update user role: ${e.message}`);
+            logger_config_1.logger.warn(`Could not update user role: ${e.message}`);
         }
         return { status: 'SUCCESS' };
     }
     async updateUserStatus(userId, status) {
         try {
-            await userRepository.updateStatus(userId, status);
+            await user_repository_1.userRepository.updateStatus(userId, status);
         }
         catch (e) {
-            logger.warn(`Could not update user status: ${e.message}`);
+            logger_config_1.logger.warn(`Could not update user status: ${e.message}`);
         }
         return { status: 'SUCCESS' };
     }
 }
-export const authService = new AuthService();
+exports.AuthService = AuthService;
+exports.authService = new AuthService();

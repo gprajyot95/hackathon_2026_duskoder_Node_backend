@@ -1,104 +1,107 @@
-import { logger } from '../config/logger.config';
-import { geminiService } from './gemini.service';
-import { promptBuilderService } from './prompt-builder.service';
-import { schemaMetadataService } from './schema-metadata.service';
-import { sqlExecutionService } from './sql-execution.service';
-import { sqlValidationService } from './sql-validation.service';
-export class AiQueryService {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.aiQueryService = exports.AiQueryService = void 0;
+const logger_config_1 = require("../config/logger.config");
+const gemini_service_1 = require("./gemini.service");
+const prompt_builder_service_1 = require("./prompt-builder.service");
+const schema_metadata_service_1 = require("./schema-metadata.service");
+const sql_execution_service_1 = require("./sql-execution.service");
+const sql_validation_service_1 = require("./sql-validation.service");
+class AiQueryService {
     /**
      * Main AI Query Orchestrator supporting Two-Stage Gemini Pipeline.
      */
     async processUserQuestion(request) {
         const totalStartTime = Date.now();
         if (!request || !request.question || request.question.trim().length === 0) {
-            logger.warn('Received empty user question request');
+            logger_config_1.logger.warn('Received empty user question request');
             return this.buildErrorResponse('', 'Question must not be empty.');
         }
         const question = request.question.trim();
-        logger.info('==========================================================================');
-        logger.info(`START AI QUERY REQUEST: '${question}'`);
-        logger.info('==========================================================================');
+        logger_config_1.logger.info('==========================================================================');
+        logger_config_1.logger.info(`START AI QUERY REQUEST: '${question}'`);
+        logger_config_1.logger.info('==========================================================================');
         // Step 1: Read schema metadata from cache
-        logger.info('Reading database schema metadata from cache...');
-        const schemaMetadata = await schemaMetadataService.getCachedSchemaMetadata();
+        logger_config_1.logger.info('Reading database schema metadata from cache...');
+        const schemaMetadata = await schema_metadata_service_1.schemaMetadataService.getCachedSchemaMetadata();
         if (!schemaMetadata || schemaMetadata.trim().length === 0) {
-            logger.error('Schema metadata cache is empty or unavailable!');
+            logger_config_1.logger.error('Schema metadata cache is empty or unavailable!');
             return this.buildErrorResponse(question, 'Database schema metadata is currently unavailable in cache.');
         }
         // Step 2: Read system instruction
-        const systemInstruction = promptBuilderService.getSystemInstruction();
+        const systemInstruction = prompt_builder_service_1.promptBuilderService.getSystemInstruction();
         // Step 3: Stage 1 Gemini Call (Query Generation Mode)
-        logger.info('--> STAGE 1: Invoking Gemini (Query Generation Mode)...');
+        logger_config_1.logger.info('--> STAGE 1: Invoking Gemini (Query Generation Mode)...');
         const stage1StartTime = Date.now();
         let stage1Response;
         try {
-            stage1Response = await geminiService.generateQuery(systemInstruction, schemaMetadata, question);
+            stage1Response = await gemini_service_1.geminiService.generateQuery(systemInstruction, schemaMetadata, question);
         }
         catch (e) {
-            logger.error(`Failed Stage 1 LLM service call: ${e.message}`);
+            logger_config_1.logger.error(`Failed Stage 1 LLM service call: ${e.message}`);
             return this.buildErrorResponse(question, `AI Stage 1 error: ${e.message}`);
         }
         const stage1Duration = Date.now() - stage1StartTime;
-        logger.info(`<-- STAGE 1 COMPLETED in ${stage1Duration}ms`);
+        logger_config_1.logger.info(`<-- STAGE 1 COMPLETED in ${stage1Duration}ms`);
         if (!stage1Response) {
             return this.buildErrorResponse(question, 'AI service returned null response in Stage 1.');
         }
         const effectiveSql = stage1Response.sql || stage1Response.query || stage1Response.sqlQuery;
         const requiresDatabase = Boolean(stage1Response.requiresDatabase);
         const isQueryType = 'query'.toLowerCase() === (stage1Response.type || '').toLowerCase() || requiresDatabase || Boolean(effectiveSql && effectiveSql.trim().length > 0);
-        logger.info('[DIAGNOSTIC LOG] Stage 1 Parsing Completed:');
-        logger.info(`  - type:              '${stage1Response.type}'`);
-        logger.info(`  - requiresDatabase:  ${requiresDatabase}`);
-        logger.info(`  - isQueryType:       ${isQueryType}`);
-        logger.info(`  - effectiveSql:      '${effectiveSql}'`);
+        logger_config_1.logger.info('[DIAGNOSTIC LOG] Stage 1 Parsing Completed:');
+        logger_config_1.logger.info(`  - type:              '${stage1Response.type}'`);
+        logger_config_1.logger.info(`  - requiresDatabase:  ${requiresDatabase}`);
+        logger_config_1.logger.info(`  - isQueryType:       ${isQueryType}`);
+        logger_config_1.logger.info(`  - effectiveSql:      '${effectiveSql}'`);
         // Step 4: Branch Processing
         if (!isQueryType) {
             const totalDuration = Date.now() - totalStartTime;
-            logger.info('[DECISION] Schema / Text Question detected. Returning Stage 1 response directly.');
-            logger.info(`PERFORMANCE METRICS: Stage1=${stage1Duration}ms, Total=${totalDuration}ms`);
+            logger_config_1.logger.info('[DECISION] Schema / Text Question detected. Returning Stage 1 response directly.');
+            logger_config_1.logger.info(`PERFORMANCE METRICS: Stage1=${stage1Duration}ms, Total=${totalDuration}ms`);
             return this.buildTextResponse(question, stage1Response);
         }
         if (!effectiveSql || effectiveSql.trim().length === 0) {
-            logger.error('[DECISION ERROR] Query execution requested, but no SQL generated by Stage 1!');
+            logger_config_1.logger.error('[DECISION ERROR] Query execution requested, but no SQL generated by Stage 1!');
             return this.buildErrorResponse(question, 'AI model determined a database query was required, but failed to produce a valid SQL statement.');
         }
         // Step 5: SQL Validation
-        logger.info('--> SQL VALIDATION: Validating generated SQL...');
+        logger_config_1.logger.info('--> SQL VALIDATION: Validating generated SQL...');
         const valStartTime = Date.now();
-        const valResult = sqlValidationService.validate(effectiveSql);
+        const valResult = sql_validation_service_1.sqlValidationService.validate(effectiveSql);
         const valDuration = Date.now() - valStartTime;
         if (!valResult.isValid) {
-            logger.warn(`<-- SQL VALIDATION FAILED in ${valDuration}ms: ${valResult.errorMessage}`);
+            logger_config_1.logger.warn(`<-- SQL VALIDATION FAILED in ${valDuration}ms: ${valResult.errorMessage}`);
             return this.buildErrorResponse(question, valResult.errorMessage || 'Invalid SQL');
         }
-        logger.info(`<-- SQL VALIDATION PASSED in ${valDuration}ms`);
+        logger_config_1.logger.info(`<-- SQL VALIDATION PASSED in ${valDuration}ms`);
         // Step 6: SQL Execution
-        logger.info('--> SQL EXECUTION: Executing query on PostgreSQL database...');
+        logger_config_1.logger.info('--> SQL EXECUTION: Executing query on PostgreSQL database...');
         const sqlStartTime = Date.now();
         let queryResults;
         try {
-            queryResults = await sqlExecutionService.executeSelect(effectiveSql);
+            queryResults = await sql_execution_service_1.sqlExecutionService.executeSelect(effectiveSql);
         }
         catch (e) {
-            logger.error(`<-- SQL EXECUTION FAILED: ${e.message}`);
+            logger_config_1.logger.error(`<-- SQL EXECUTION FAILED: ${e.message}`);
             return this.buildErrorResponse(question, `Failed to execute database query: ${e.message}`);
         }
         const sqlDuration = Date.now() - sqlStartTime;
         const rowCount = queryResults ? queryResults.length : 0;
-        logger.info(`<-- SQL EXECUTION COMPLETED in ${sqlDuration}ms (Rows: ${rowCount})`);
+        logger_config_1.logger.info(`<-- SQL EXECUTION COMPLETED in ${sqlDuration}ms (Rows: ${rowCount})`);
         // Step 7: Stage 2 Gemini Call (Response Generation Mode)
-        logger.info(`--> STAGE 2: Invoking Gemini (Response Generation Mode with ${rowCount} rows context)...`);
+        logger_config_1.logger.info(`--> STAGE 2: Invoking Gemini (Response Generation Mode with ${rowCount} rows context)...`);
         const stage2StartTime = Date.now();
         let stage2Response;
         try {
-            stage2Response = await geminiService.generateFormattedResponse(systemInstruction, question, effectiveSql, queryResults);
+            stage2Response = await gemini_service_1.geminiService.generateFormattedResponse(systemInstruction, question, effectiveSql, queryResults);
         }
         catch (e) {
-            logger.error(`Failed Stage 2 LLM service call: ${e.message}`);
+            logger_config_1.logger.error(`Failed Stage 2 LLM service call: ${e.message}`);
             return this.buildErrorResponse(question, `AI Stage 2 response formatting error: ${e.message}`);
         }
         const stage2Duration = Date.now() - stage2StartTime;
-        logger.info(`<-- STAGE 2 COMPLETED in ${stage2Duration}ms`);
+        logger_config_1.logger.info(`<-- STAGE 2 COMPLETED in ${stage2Duration}ms`);
         const totalDuration = Date.now() - totalStartTime;
         return this.buildFormattedQueryResponse(question, effectiveSql, queryResults, stage2Response, totalDuration);
     }
@@ -147,4 +150,5 @@ export class AiQueryService {
         };
     }
 }
-export const aiQueryService = new AiQueryService();
+exports.AiQueryService = AiQueryService;
+exports.aiQueryService = new AiQueryService();

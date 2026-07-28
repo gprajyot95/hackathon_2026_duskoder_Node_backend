@@ -1,19 +1,25 @@
-import pg from 'pg';
-import { env } from '../config/env.config';
-import { logger } from '../config/logger.config';
-import { schemaMetadataService } from './schema-metadata.service';
-export class PostgresNotificationListenerService {
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.postgresListenerService = exports.PostgresNotificationListenerService = void 0;
+const pg_1 = __importDefault(require("pg"));
+const env_config_1 = require("../config/env.config");
+const logger_config_1 = require("../config/logger.config");
+const schema_metadata_service_1 = require("./schema-metadata.service");
+class PostgresNotificationListenerService {
     client = null;
     isRunning = false;
     lastNotificationTime = 0;
     reconnectTimer = null;
     async start() {
-        if (!env.NOTIFICATION_ENABLED) {
-            logger.info('PostgreSQL notification listener is disabled via configuration');
+        if (!env_config_1.env.NOTIFICATION_ENABLED) {
+            logger_config_1.logger.info('PostgreSQL notification listener is disabled via configuration');
             return;
         }
         this.isRunning = true;
-        logger.info('Starting PostgreSQL LISTEN service...');
+        logger_config_1.logger.info('Starting PostgreSQL LISTEN service...');
         await this.connectAndListen();
     }
     async stop() {
@@ -29,51 +35,51 @@ export class PostgresNotificationListenerService {
             catch (ignored) { }
             this.client = null;
         }
-        logger.info('PostgreSQL notification listener stopped.');
+        logger_config_1.logger.info('PostgreSQL notification listener stopped.');
     }
     async connectAndListen() {
         if (!this.isRunning)
             return;
         try {
-            this.client = new pg.Client({ connectionString: env.DATABASE_URL });
+            this.client = new pg_1.default.Client({ connectionString: env_config_1.env.DATABASE_URL });
             await this.client.connect();
             this.client.on('notification', async (msg) => {
-                logger.info(`Notification received on channel '${msg.channel}': ${msg.payload}`);
+                logger_config_1.logger.info(`Notification received on channel '${msg.channel}': ${msg.payload}`);
                 const now = Date.now();
-                if (now - this.lastNotificationTime < env.NOTIFICATION_DEBOUNCE_MS) {
-                    logger.info(`Debouncing duplicate PostgreSQL notification (received within ${env.NOTIFICATION_DEBOUNCE_MS}ms window)`);
+                if (now - this.lastNotificationTime < env_config_1.env.NOTIFICATION_DEBOUNCE_MS) {
+                    logger_config_1.logger.info(`Debouncing duplicate PostgreSQL notification (received within ${env_config_1.env.NOTIFICATION_DEBOUNCE_MS}ms window)`);
                     return;
                 }
                 this.lastNotificationTime = now;
-                logger.info('Received PostgreSQL schema change notification. Refreshing schema metadata...');
+                logger_config_1.logger.info('Received PostgreSQL schema change notification. Refreshing schema metadata...');
                 try {
-                    const updated = await schemaMetadataService.refreshSchemaMetadata();
+                    const updated = await schema_metadata_service_1.schemaMetadataService.refreshSchemaMetadata();
                     if (updated) {
-                        logger.info('Cache updated successfully via PostgreSQL notification.');
+                        logger_config_1.logger.info('Cache updated successfully via PostgreSQL notification.');
                     }
                     else {
-                        logger.warn('Schema refresh attempt returned false.');
+                        logger_config_1.logger.warn('Schema refresh attempt returned false.');
                     }
                 }
                 catch (e) {
-                    logger.error(`Error refreshing schema metadata during notification: ${e.message}`);
+                    logger_config_1.logger.error(`Error refreshing schema metadata during notification: ${e.message}`);
                 }
             });
             this.client.on('error', (err) => {
-                logger.warn(`PostgreSQL notification client error: ${err.message}. Reconnecting in ${env.NOTIFICATION_RECONNECT_MS}ms...`);
+                logger_config_1.logger.warn(`PostgreSQL notification client error: ${err.message}. Reconnecting in ${env_config_1.env.NOTIFICATION_RECONNECT_MS}ms...`);
                 this.scheduleReconnect();
             });
             this.client.on('end', () => {
                 if (this.isRunning) {
-                    logger.warn(`PostgreSQL notification connection ended. Reconnecting in ${env.NOTIFICATION_RECONNECT_MS}ms...`);
+                    logger_config_1.logger.warn(`PostgreSQL notification connection ended. Reconnecting in ${env_config_1.env.NOTIFICATION_RECONNECT_MS}ms...`);
                     this.scheduleReconnect();
                 }
             });
-            await this.client.query(`LISTEN ${env.NOTIFICATION_CHANNEL}`);
-            logger.info(`Listening on PostgreSQL channel '${env.NOTIFICATION_CHANNEL}'`);
+            await this.client.query(`LISTEN ${env_config_1.env.NOTIFICATION_CHANNEL}`);
+            logger_config_1.logger.info(`Listening on PostgreSQL channel '${env_config_1.env.NOTIFICATION_CHANNEL}'`);
         }
         catch (err) {
-            logger.warn(`Failed to connect PostgreSQL notification listener: ${err.message}. Retrying in ${env.NOTIFICATION_RECONNECT_MS}ms...`);
+            logger_config_1.logger.warn(`Failed to connect PostgreSQL notification listener: ${err.message}. Retrying in ${env_config_1.env.NOTIFICATION_RECONNECT_MS}ms...`);
             this.scheduleReconnect();
         }
     }
@@ -89,7 +95,8 @@ export class PostgresNotificationListenerService {
             clearTimeout(this.reconnectTimer);
         this.reconnectTimer = setTimeout(() => {
             this.connectAndListen();
-        }, env.NOTIFICATION_RECONNECT_MS);
+        }, env_config_1.env.NOTIFICATION_RECONNECT_MS);
     }
 }
-export const postgresListenerService = new PostgresNotificationListenerService();
+exports.PostgresNotificationListenerService = PostgresNotificationListenerService;
+exports.postgresListenerService = new PostgresNotificationListenerService();

@@ -1,80 +1,37 @@
-if (typeof globalThis.__dirname === 'undefined') {
-    globalThis.__dirname = '/';
-}
-if (typeof globalThis.__filename === 'undefined') {
-    globalThis.__filename = '/server.js';
-}
-if (typeof globalThis.global === 'undefined') {
-    globalThis.global = globalThis;
-}
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import path from 'path';
-import masterRouter from './routes/index';
-import { requestLoggerMiddleware } from './middlewares/request-logger.middleware';
-import { errorHandlerMiddleware } from './middlewares/error-handler.middleware';
-const app = express();
-// Security Middlewares
-app.use(helmet());
-app.use(cors());
-// Zero-dependency native body parsing middleware
-app.use((req, _res, next) => {
-    // Skip if body already exists
-    if (req.body !== undefined) {
-        return next();
-    }
-    const methods = ['POST', 'PUT', 'PATCH', 'DELETE'];
-    if (!methods.includes(req.method)) {
-        req.body = {};
-        return next();
-    }
-    const chunks = [];
-    req.on('data', (chunk) => {
-        chunks.push(chunk);
-    });
-    req.on('end', () => {
-        try {
-            const raw = Buffer.concat(chunks).toString('utf-8');
-            const contentType = (req.headers['content-type'] || '').toLowerCase();
-            if (contentType.includes('application/json')) {
-                req.body = raw ? JSON.parse(raw) : {};
-            }
-            else if (contentType.includes('application/x-www-form-urlencoded')) {
-                req.body = Object.fromEntries(new URLSearchParams(raw));
-            }
-            else {
-                req.body = raw;
-            }
-        }
-        catch {
-            req.body = {};
-        }
-        next();
-    });
-    req.on('error', () => {
-        req.body = {};
-        next();
-    });
-});
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const helmet_1 = __importDefault(require("helmet"));
+const swagger_ui_express_1 = __importDefault(require("swagger-ui-express"));
+const yamljs_1 = __importDefault(require("yamljs"));
+const path_1 = __importDefault(require("path"));
+const index_1 = __importDefault(require("./routes/index"));
+const request_logger_middleware_1 = require("./middlewares/request-logger.middleware");
+const error_handler_middleware_1 = require("./middlewares/error-handler.middleware");
+const app = (0, express_1.default)();
+// Security & Parsing Middlewares
+app.use((0, helmet_1.default)());
+app.use((0, cors_1.default)());
+app.use(express_1.default.json({ limit: '10mb' }));
+app.use(express_1.default.urlencoded({ extended: true }));
 // Request Logging Middleware
-app.use(requestLoggerMiddleware);
-// Swagger Documentation UI (Lazy loaded with safety fallback for Cloudflare Workers)
-(async () => {
-    try {
-        const swaggerUi = (await import('swagger-ui-express')).default;
-        const YAML = (await import('yamljs')).default;
-        const swaggerPath = path.resolve(globalThis.__dirname || '/', '../swagger.yaml');
-        const swaggerDocument = YAML.load(swaggerPath);
-        app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-        app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-    }
-    catch (e) {
-        console.warn(`Swagger UI initialization skipped in worker: ${e.message}`);
-    }
-})();
+app.use(request_logger_middleware_1.requestLoggerMiddleware);
+// Swagger Documentation UI
+try {
+    const swaggerPath = path_1.default.resolve(__dirname, '../swagger.yaml');
+    const swaggerDocument = yamljs_1.default.load(swaggerPath);
+    app.use('/docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
+    app.use('/swagger', swagger_ui_express_1.default.serve, swagger_ui_express_1.default.setup(swaggerDocument));
+}
+catch (e) {
+    console.warn(`Could not load swagger.yaml: ${e.message}`);
+}
 // Master API Routes
-app.use(masterRouter);
+app.use(index_1.default);
 // Centralized Error Handling Middleware
-app.use(errorHandlerMiddleware);
-export default app;
+app.use(error_handler_middleware_1.errorHandlerMiddleware);
+exports.default = app;
