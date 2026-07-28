@@ -1,8 +1,15 @@
+if (typeof globalThis.__dirname === 'undefined') {
+    globalThis.__dirname = '/';
+}
+if (typeof globalThis.__filename === 'undefined') {
+    globalThis.__filename = '/server.js';
+}
+if (typeof globalThis.global === 'undefined') {
+    globalThis.global = globalThis;
+}
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import swaggerUi from 'swagger-ui-express';
-import YAML from 'yamljs';
 import path from 'path';
 import masterRouter from './routes/index';
 import { requestLoggerMiddleware } from './middlewares/request-logger.middleware';
@@ -52,16 +59,20 @@ app.use((req, _res, next) => {
 });
 // Request Logging Middleware
 app.use(requestLoggerMiddleware);
-// Swagger Documentation UI (Gracefully handled if file unavailable in worker runtime)
-try {
-    const swaggerPath = path.resolve(__dirname, '../swagger.yaml');
-    const swaggerDocument = YAML.load(swaggerPath);
-    app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-    app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-}
-catch (e) {
-    console.warn(`Could not load swagger.yaml: ${e.message}`);
-}
+// Swagger Documentation UI (Lazy loaded with safety fallback for Cloudflare Workers)
+(async () => {
+    try {
+        const swaggerUi = (await import('swagger-ui-express')).default;
+        const YAML = (await import('yamljs')).default;
+        const swaggerPath = path.resolve(globalThis.__dirname || '/', '../swagger.yaml');
+        const swaggerDocument = YAML.load(swaggerPath);
+        app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+        app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+    }
+    catch (e) {
+        console.warn(`Swagger UI initialization skipped in worker: ${e.message}`);
+    }
+})();
 // Master API Routes
 app.use(masterRouter);
 // Centralized Error Handling Middleware

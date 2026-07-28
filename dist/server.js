@@ -1,3 +1,12 @@
+if (typeof globalThis.__dirname === 'undefined') {
+    globalThis.__dirname = '/';
+}
+if (typeof globalThis.__filename === 'undefined') {
+    globalThis.__filename = '/server.js';
+}
+if (typeof globalThis.global === 'undefined') {
+    globalThis.global = globalThis;
+}
 import { EventEmitter } from 'events';
 import app from './app';
 import { env } from './config/env.config';
