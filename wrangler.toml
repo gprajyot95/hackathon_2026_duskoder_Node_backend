@@ -1,4 +1,4 @@
-name = "hackathon-2026duskoder-node-backend"
+name = "hackathon-2026-duskoder-node-backend"
 main = "dist/server.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = [ "nodejs_compat" ]
