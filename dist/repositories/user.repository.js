@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.userRepository = exports.UserRepository = void 0;
-const database_config_1 = require("../config/database.config");
-class UserRepository {
+import { prisma } from '../config/database.config';
+export class UserRepository {
     async upsertGoogleUser(data) {
-        return database_config_1.prisma.appUser.upsert({
+        return prisma.appUser.upsert({
             where: { googleId: data.googleId },
             update: {
                 email: data.email,
@@ -28,26 +25,26 @@ class UserRepository {
         });
     }
     async findAllUsers() {
-        return database_config_1.prisma.appUser.findMany({
+        return prisma.appUser.findMany({
             orderBy: { id: 'asc' },
         });
     }
     async updateRole(userId, role) {
-        return database_config_1.prisma.appUser.update({
+        return prisma.appUser.update({
             where: { id: userId },
             data: { role, updatedAt: new Date() },
         });
     }
     async updateStatus(userId, status) {
-        return database_config_1.prisma.appUser.update({
+        return prisma.appUser.update({
             where: { id: userId },
             data: { accountStatus: status, updatedAt: new Date() },
         });
     }
     async ensureAdminUserExists() {
-        const adminCount = await database_config_1.prisma.appUser.count({ where: { role: 'ADMIN' } });
+        const adminCount = await prisma.appUser.count({ where: { role: 'ADMIN' } });
         if (adminCount === 0) {
-            await database_config_1.prisma.appUser.upsert({
+            await prisma.appUser.upsert({
                 where: { googleId: 'google-admin-001' },
                 update: {},
                 create: {
@@ -63,5 +60,4 @@ class UserRepository {
         }
     }
 }
-exports.UserRepository = UserRepository;
-exports.userRepository = new UserRepository();
+export const userRepository = new UserRepository();

@@ -1,12 +1,9 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.chatHistoryController = exports.ChatHistoryController = void 0;
-const chat_history_service_1 = require("../services/chat-history.service");
-class ChatHistoryController {
+import { chatHistoryService } from '../services/chat-history.service';
+export class ChatHistoryController {
     async getChatSessions(req, res, next) {
         try {
             const userId = req.query.userId || 'user-1';
-            const sessions = await chat_history_service_1.chatHistoryService.getChatSessions(userId);
+            const sessions = await chatHistoryService.getChatSessions(userId);
             res.json(sessions);
         }
         catch (error) {
@@ -16,7 +13,7 @@ class ChatHistoryController {
     async getChatSessionDetails(req, res, next) {
         try {
             const sessionId = req.params.sessionId;
-            const session = await chat_history_service_1.chatHistoryService.getChatSessionDetails(sessionId);
+            const session = await chatHistoryService.getChatSessionDetails(sessionId);
             if (!session) {
                 res.status(404).end();
                 return;
@@ -29,7 +26,7 @@ class ChatHistoryController {
     }
     async createChatSession(req, res, next) {
         try {
-            const result = await chat_history_service_1.chatHistoryService.createChatSession(req.body);
+            const result = await chatHistoryService.createChatSession(req.body);
             res.json(result);
         }
         catch (error) {
@@ -39,7 +36,7 @@ class ChatHistoryController {
     async deleteChatSession(req, res, next) {
         try {
             const sessionId = req.params.sessionId;
-            const result = await chat_history_service_1.chatHistoryService.deleteChatSession(sessionId);
+            const result = await chatHistoryService.deleteChatSession(sessionId);
             res.json(result);
         }
         catch (error) {
@@ -49,7 +46,7 @@ class ChatHistoryController {
     async getChatHistory(req, res, next) {
         try {
             const userId = req.params.userId;
-            const history = await chat_history_service_1.chatHistoryService.getChatHistory(userId);
+            const history = await chatHistoryService.getChatHistory(userId);
             res.json(history);
         }
         catch (error) {
@@ -58,7 +55,7 @@ class ChatHistoryController {
     }
     async saveChatMessage(req, res, next) {
         try {
-            const result = await chat_history_service_1.chatHistoryService.saveChatMessage(req.body);
+            const result = await chatHistoryService.saveChatMessage(req.body);
             res.json(result);
         }
         catch (error) {
@@ -66,5 +63,4 @@ class ChatHistoryController {
         }
     }
 }
-exports.ChatHistoryController = ChatHistoryController;
-exports.chatHistoryController = new ChatHistoryController();
+export const chatHistoryController = new ChatHistoryController();

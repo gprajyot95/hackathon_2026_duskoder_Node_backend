@@ -1,12 +1,9 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.dataController = exports.DataController = void 0;
-const schema_metadata_service_1 = require("../services/schema-metadata.service");
-const env_config_1 = require("../config/env.config");
-class DataController {
+import { schemaMetadataService } from '../services/schema-metadata.service';
+import { env } from '../config/env.config';
+export class DataController {
     async getCachedData(req, res, next) {
         try {
-            const cachedJson = await schema_metadata_service_1.schemaMetadataService.getCachedSchemaMetadata();
+            const cachedJson = await schemaMetadataService.getCachedSchemaMetadata();
             if (cachedJson && cachedJson.trim().length > 0) {
                 res.setHeader('Content-Type', 'application/json');
                 res.send(cachedJson);
@@ -14,7 +11,7 @@ class DataController {
             else {
                 res.status(404).json({
                     status: 'CACHE_MISS',
-                    message: `No cached schema metadata found for key: ${env_config_1.env.CACHE_KEY}`,
+                    message: `No cached schema metadata found for key: ${env.CACHE_KEY}`,
                 });
             }
         }
@@ -24,12 +21,12 @@ class DataController {
     }
     async refreshCache(req, res, next) {
         try {
-            const success = await schema_metadata_service_1.schemaMetadataService.refreshSchemaMetadata();
+            const success = await schemaMetadataService.refreshSchemaMetadata();
             if (success) {
                 res.json({
                     status: 'SUCCESS',
                     message: 'PostgreSQL schema stored function executed & Caffeine cache updated successfully.',
-                    cacheKey: env_config_1.env.CACHE_KEY,
+                    cacheKey: env.CACHE_KEY,
                 });
             }
             else {
@@ -45,10 +42,10 @@ class DataController {
     }
     async evictCache(req, res, next) {
         try {
-            schema_metadata_service_1.schemaMetadataService.evictSchemaMetadataCache();
+            schemaMetadataService.evictSchemaMetadataCache();
             res.json({
                 status: 'SUCCESS',
-                message: `Schema metadata cache key '${env_config_1.env.CACHE_KEY}' evicted successfully.`,
+                message: `Schema metadata cache key '${env.CACHE_KEY}' evicted successfully.`,
             });
         }
         catch (error) {
@@ -57,13 +54,13 @@ class DataController {
     }
     async getHealth(req, res, next) {
         try {
-            const isCachePresent = schema_metadata_service_1.schemaMetadataService.isCachePresent();
+            const isCachePresent = schemaMetadataService.isCachePresent();
             res.json({
                 status: 'UP',
-                configuredStoredFunction: env_config_1.env.STORED_FUNCTION_NAME,
-                configuredCacheKey: env_config_1.env.CACHE_KEY,
-                notificationChannel: env_config_1.env.NOTIFICATION_CHANNEL,
-                isNotificationListenerEnabled: env_config_1.env.NOTIFICATION_ENABLED,
+                configuredStoredFunction: env.STORED_FUNCTION_NAME,
+                configuredCacheKey: env.CACHE_KEY,
+                notificationChannel: env.NOTIFICATION_CHANNEL,
+                isNotificationListenerEnabled: env.NOTIFICATION_ENABLED,
                 isCachedDataPresent: isCachePresent,
             });
         }
@@ -72,5 +69,4 @@ class DataController {
         }
     }
 }
-exports.DataController = DataController;
-exports.dataController = new DataController();
+export const dataController = new DataController();
