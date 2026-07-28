@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.production
+.env.development
+
+# Build Output
+dist/
+build/
+
+# IDE & OS Files
+.DS_Store
+*.log
+.vscode/
+.idea/
+.cache/
