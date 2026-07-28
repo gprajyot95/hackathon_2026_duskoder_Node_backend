@@ -2,6 +2,7 @@
   "name": "node-backend",
   "version": "1.0.0",
   "description": "Production-Grade Node.js TypeScript Backend for AI Database Assistant",
+  "type": "module",
   "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
