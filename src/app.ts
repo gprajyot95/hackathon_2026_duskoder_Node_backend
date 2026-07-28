@@ -14,38 +14,57 @@ const app = express();
 app.use(helmet());
 app.use(cors());
 
-// Native Body Parsing Middleware (Replaces body-parser/iconv-lite to prevent Cloudflare Worker V8 bundling errors)
+// Zero-dependency native body parsing middleware
 app.use((req: any, _res: any, next: any) => {
-  if (req.body !== undefined && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
+  // Skip if body already exists
+  if (req.body !== undefined) {
     return next();
   }
-  const contentType = (req.headers['content-type'] || '').toLowerCase();
-  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
-    const chunks: Buffer[] = [];
-    req.on('data', (chunk: Buffer) => chunks.push(chunk));
-    req.on('end', () => {
-      try {
-        const raw = Buffer.concat(chunks).toString('utf-8');
-        if (contentType.includes('application/json')) {
-          req.body = raw ? JSON.parse(raw) : {};
-        } else if (contentType.includes('application/x-www-form-urlencoded')) {
-          req.body = Object.fromEntries(new URLSearchParams(raw));
-        } else {
-          req.body = raw || {};
-        }
-      } catch {
-        req.body = {};
-      }
-      next();
-    });
-    req.on('error', () => {
-      req.body = {};
-      next();
-    });
-  } else {
-    req.body = req.body || {};
-    next();
+
+  const methods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+  if (!methods.includes(req.method)) {
+    req.body = {};
+    return next();
   }
+
+  const chunks: Buffer[] = [];
+
+  req.on('data', (chunk: Buffer) => {
+    chunks.push(chunk);
+  });
+
+  req.on('end', () => {
+    try {
+      const raw = Buffer.concat(chunks).toString('utf-8');
+
+      const contentType =
+        (req.headers['content-type'] || '').toLowerCase();
+
+      if (contentType.includes('application/json')) {
+        req.body = raw ? JSON.parse(raw) : {};
+      } else if (
+        contentType.includes(
+          'application/x-www-form-urlencoded'
+        )
+      ) {
+        req.body = Object.fromEntries(
+          new URLSearchParams(raw)
+        );
+      } else {
+        req.body = raw;
+      }
+    } catch {
+      req.body = {};
+    }
+
+    next();
+  });
+
+  req.on('error', () => {
+    req.body = {};
+    next();
+  });
 });
 
 // Request Logging Middleware
